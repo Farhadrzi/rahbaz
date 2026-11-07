@@ -1,10 +1,15 @@
 # RahBaz product boundary
 
-## Same repo now, separate later
+## Separate repositories
 
-During development it is fine for Hub and Client source to live in one working tree / one git repo. **At the end** they should be published as separate repositories. Until then, treat them as two products that happen to share a folder.
+| Product | Repository |
+|---|---|
+| **RahBaz Hub** | https://github.com/Farhadrzi/rahbaz |
+| **RahBaz Client** | https://github.com/Farhadrzi/rahbaz-client |
 
-## Runtime rule (hard)
+They must never share one installer or one runtime identity. Docs may cross-link; source and CI stay separate.
+
+## Runtime rule
 
 | Product | What it is | What it is not |
 |---|---|---|
@@ -15,23 +20,29 @@ During development it is fine for Hub and Client source to live in one working t
 
 The Client installer / first launch **must**:
 
-- Install the RahBaz desktop app with its own identity (`com.rahbaz.client`, `~/.rahbaz`, `rahbaz://`)
-- Ensure connection runtime deps (today: OpenCode binary + isolated OpenCode config under `~/.rahbaz`)
-- Offer settings for **Hub URL** and **Hub gateway API key** only (for normal users)
+- Install the RahBaz desktop app (`com.rahbaz.client`, `~/.rahbaz`, `rahbaz://`)
+- Ensure connection runtime deps (OpenCode under `~/.rahbaz` when needed)
+- Offer settings for **Hub URL** and **Hub gateway API key** only (normal users)
 
 The Client installer **must not**:
 
 - Install or start RahBaz Hub / Docker Desktop / Compose
-- Perform provider OAuth logins (Claude / Codex / Antigravity / …) — those stay on the Hub
-- Require the user to configure OpenCode manually when auto-detect/install works
+- Perform provider OAuth logins (those stay on the Hub)
 
 ## User journey
 
-1. User sets up Hub (their responsibility): `scripts/up.ps1`, provider logins, note gateway API key.
-2. User installs RahBaz Client.
-3. User enters Hub URL (default `http://127.0.0.1:8317`) + gateway API key.
-4. Client discovers/installs OpenCode if needed, loads Hub `/v1/models`, and chats work.
+1. Set up Hub (this repo): `scripts/up.ps1`, provider logins, note gateway API key.
+2. Install RahBaz Client from https://github.com/Farhadrzi/rahbaz-client/releases
+3. Enter Hub URL (`http://127.0.0.1:8317`) + gateway API key.
+4. Client connects automatically.
 
-## Contract between them
+## Desktop releases (Client repo)
 
-HTTP only: Client → Hub (`/v1/*` with gateway key; optional management key later for usage UI). No shared process, no shared data directory, no shared installer.
+On [rahbaz-client](https://github.com/Farhadrzi/rahbaz-client):
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+CI builds Windows x64, Linux x64 AppImage, macOS Apple Silicon (arm64), and macOS Intel (x64), then publishes a GitHub Release. Builds are unsigned unless you add signing secrets.

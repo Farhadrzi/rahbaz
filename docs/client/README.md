@@ -17,7 +17,7 @@ Stock Claude, Codex, Cursor, Antigravity, and other direct providers are not reg
 
 These identifiers are chosen so RahBaz can sit **side-by-side with T3 Code** without sharing install paths, shortcuts, protocol handlers, or updater metadata.
 
-> **Boundary:** Hub setup is **your** job. The Client installer does **not** install Hub/Docker. It only installs the app + connection deps (OpenCode). Same git tree is OK while developing; split into separate repos later. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
+> **Boundary:** Client source and releases live at **https://github.com/Farhadrzi/rahbaz-client**. Hub setup is **your** job. The Client installer does **not** install Hub/Docker. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
 
 ## Prerequisites (end user)
 
@@ -83,9 +83,9 @@ Linux / macOS helpers: `scripts/build-desktop-linux.sh`, `scripts/build-desktop-
 
 ### Publishing strategy
 
-- **Now:** Hub is published from this repo; Client source may stay local/gitignored in the same working tree.
-- **End state:** separate Client repository; Hub and Client installers stay separate forever.
-- Client installer must never embed Hub/Docker. Desktop CI builds Client artifacts only.
+- Client repository: https://github.com/Farhadrzi/rahbaz-client
+- Desktop CI/CD: tag `v*.*.*` on the Client repo (Windows x64, Linux x64, macOS arm64, macOS x64)
+- Local `clients/rahbaz-client/` may remain a checkout of that repo for Hub-side scripting; it stays gitignored from the Hub tree.
 
 ## Troubleshooting
 

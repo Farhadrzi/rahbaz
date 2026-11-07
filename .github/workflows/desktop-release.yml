@@ -1,183 +1,26 @@
-# Desktop release skeleton (Windows / macOS / Linux).
+# Desktop releases live on the Client repository, not here.
 #
-# HARD SEPARATION — Hub and Client must never be mixed in this repo:
-#   - This repository publishes Hub only
-#   - Root .gitignore permanently ignores clients/rahbaz-client/
-#   - Client builds must check out a SEPARATE Client repository (or receive
-#     artifacts via repository_dispatch). Do not vendor Client into Hub.
-#   - Installers may still be attached to Farhadrzi/rahbaz Releases as
-#     distribution, without putting Client source in the Hub tree
+# Hub (this repo): https://github.com/Farhadrzi/rahbaz
+# Client:          https://github.com/Farhadrzi/rahbaz-client
 #
-# This workflow documents the intended matrix and gates. Until a separate
-# Client repo is wired, the build jobs exit successfully after printing what
-# is still required — they do NOT fabricate installers or upload secrets.
-#
-# Required for a real release job (fill when enabling):
-#   - Checkout of the separate Client repository (never Hub-mixed source)
-#   - Node + Vite+/pnpm toolchain matching the Client monorepo engines
-#   - Platform toolchains (Rust, MSVC / Xcode / Linux AppImage deps)
-#   - OpenCode CLI available where the build script expects it
-#   - Env: T3CODE_DESKTOP_UPDATE_REPOSITORY=Farhadrzi/rahbaz
-#          (or GITHUB_REPOSITORY=Farhadrzi/rahbaz on this repo)
-#   - Optional signing secrets (Windows / macOS) — omit for unsigned CI artifacts
-#   - permissions: contents: write only on the job that creates a GitHub Release
-#
-# Do not store gateway keys, management keys, or OAuth tokens in Actions secrets
-# for these builds. Desktop artifacts talk to a local Hub at runtime.
+# Tag v*.*.* on Farhadrzi/rahbaz-client (or run its "Desktop release" workflow)
+# to build Windows x64, Linux x64, macOS arm64, and macOS x64 installers.
 
-name: desktop-release
+name: desktop-release-pointer
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version label for artifacts (informational until builds are enabled)"
-        required: false
-        default: "0.0.0-dev"
-      enable_builds:
-        description: "Set true only after Client source is available to this workflow"
-        required: false
-        default: "false"
-  # Uncomment when Client source is wired and you want tag-driven releases:
-  # push:
-  #   tags: ["v*"]
 
 permissions:
   contents: read
 
-concurrency:
-  group: desktop-release-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
-env:
-  # Intended electron-updater / electron-builder GitHub publish target.
-  T3CODE_DESKTOP_UPDATE_REPOSITORY: Farhadrzi/rahbaz
-  CLIENT_PATH: clients/rahbaz-client
-
 jobs:
-  gate:
-    name: Client source gate
+  point:
+    name: Client releases are separate
     runs-on: ubuntu-latest
-    outputs:
-      client_present: ${{ steps.check.outputs.client_present }}
-      builds_enabled: ${{ steps.check.outputs.builds_enabled }}
     steps:
-      - name: Checkout Hub repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Detect Client source + operator enable flag
-        id: check
+      - name: Explain
         run: |
-          set -euo pipefail
-          PRESENT=false
-          if [[ -f "${CLIENT_PATH}/package.json" ]]; then
-            PRESENT=true
-          fi
-          ENABLED="${{ github.event.inputs.enable_builds || 'false' }}"
-          echo "client_present=${PRESENT}" >> "$GITHUB_OUTPUT"
-          echo "builds_enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
-          echo "=== desktop-release gate ==="
-          echo "Client path: ${CLIENT_PATH}"
-          echo "package.json present: ${PRESENT}"
-          echo "enable_builds input: ${ENABLED}"
-          echo "Updater repository: ${T3CODE_DESKTOP_UPDATE_REPOSITORY}"
-          if [[ "${PRESENT}" != "true" ]]; then
-            echo ""
-            echo "BLOCKED: Client source not available in this checkout."
-            echo "Root .gitignore currently excludes clients/rahbaz-client/."
-            echo "To enable builds, choose one of:"
-            echo "  (A) Checkout Client from a separate repo in each matrix job, or add a submodule"
-            echo "  (B) Stop ignoring a releaseable Client snapshot and commit it / submodule it here"
-            echo "Also document release asset + latest*.yml upload to Farhadrzi/rahbaz."
-          fi
-
-  desktop-matrix:
-    name: Desktop ${{ matrix.os }}
-    needs: gate
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win
-            script: scripts/build-desktop-win.ps1
-            shell: pwsh
-          - os: macos-latest
-            platform: mac
-            script: scripts/build-desktop-mac.sh
-            shell: bash
-          - os: ubuntu-latest
-            platform: linux
-            script: scripts/build-desktop-linux.sh
-            shell: bash
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
-    steps:
-      - name: Checkout Hub repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      # --- Placeholder: when using layout (A), add a second checkout here ---
-      # - name: Checkout RahBaz Client (separate repo)
-      #   if: needs.gate.outputs.client_present != 'true'
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: Farhadrzi/rahbaz-client   # adjust when the Client repo exists
-      #     path: clients/rahbaz-client
-      #     token: ${{ secrets.CLIENT_CHECKOUT_TOKEN }}  # only if the Client repo is private
-
-      - name: Skip or build
-        shell: bash
-        env:
-          CLIENT_PRESENT: ${{ needs.gate.outputs.client_present }}
-          BUILDS_ENABLED: ${{ needs.gate.outputs.builds_enabled }}
-          PLATFORM: ${{ matrix.platform }}
-          BUILD_SCRIPT: ${{ matrix.script }}
-          VERSION_LABEL: ${{ github.event.inputs.version || '0.0.0-dev' }}
-        run: |
-          set -euo pipefail
-          echo "Platform: ${PLATFORM}"
-          echo "Script: ${BUILD_SCRIPT}"
-          echo "Version label: ${VERSION_LABEL}"
-          echo "Client present: ${CLIENT_PRESENT}"
-          echo "Builds enabled: ${BUILDS_ENABLED}"
-          echo "Publish/updater target: ${T3CODE_DESKTOP_UPDATE_REPOSITORY}"
-
-          if [[ "${CLIENT_PRESENT}" != "true" || "${BUILDS_ENABLED}" != "true" ]]; then
-            echo ""
-            echo "No desktop build executed."
-            echo "Requirements before flipping enable_builds=true:"
-            echo "  1. Client source at ${CLIENT_PATH} (submodule, snapshot, or extra checkout)"
-            echo "  2. Install Node + vp/pnpm + platform native toolchains"
-            echo "  3. Run: ${BUILD_SCRIPT}"
-            echo "  4. Upload release/desktop/${PLATFORM}/* + updater YAML to GitHub Release"
-            echo "  5. Optional: signing secrets for ${PLATFORM}"
-            exit 0
-          fi
-
-          echo "Builds enabled and Client present — invoke the platform script next."
-          echo "TODO: install toolchains, then run ${BUILD_SCRIPT}"
-          exit 1
-
-  # Uncomment and tighten when builds produce real artifacts:
-  # publish-release:
-  #   name: Publish GitHub Release
-  #   needs: [gate, desktop-matrix]
-  #   if: needs.gate.outputs.client_present == 'true' && needs.gate.outputs.builds_enabled == 'true'
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         path: dist
-  #     - name: Create release on Farhadrzi/rahbaz
-  #       uses: softprops/action-gh-release@v2
-  #       with:
-  #         files: dist/**/*
-  #         generate_release_notes: true
+          echo "RahBaz Hub does not build the desktop Client."
+          echo "Use https://github.com/Farhadrzi/rahbaz-client/actions/workflows/desktop-release.yml"
+          echo "or push a v*.*.* tag on Farhadrzi/rahbaz-client."

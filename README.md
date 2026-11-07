@@ -42,16 +42,17 @@ Identity targets: app id `com.rahbaz.client`, data under `~/.rahbaz`, protocol `
 
 ### Product boundary (Hub ≠ Client)
 
-**RahBaz Hub and RahBaz Client are separate products at runtime.** They may share one git repo during development; they will be split into separate repos later. They must **never** share one installer or one runtime identity.
+**Separate GitHub repositories. Separate installers. HTTP contract only.**
 
-| | Hub | Client |
+| | Hub (this repo) | Client |
 |---|---|---|
+| Repo | https://github.com/Farhadrzi/rahbaz | https://github.com/Farhadrzi/rahbaz-client |
 | Responsibility | Docker gateway, OAuth accounts, quotas, failover | Desktop app that talks **only** to Hub |
-| Installer | User sets up Hub themselves (Docker / this repo) | Installs Client + connection deps (e.g. OpenCode) — **does not** install Hub |
-| After Hub is up | — | User enters Hub URL + gateway API key → models/chats work automatically |
-| Local tree today | This repo (published) | `clients/rahbaz-client/` (local; gitignored for now; separate publish later) |
+| Installer | You set up Hub yourself | Installs Client + OpenCode as needed; **does not** install Hub |
+| After Hub is up | — | Enter Hub URL + gateway API key → works automatically |
+| Releases | Hub docs / Compose | Automatic desktop CI on `v*` tags (Win / Linux / macOS arm64+x64) |
 
-CI: Hub validation runs here. Desktop release is a skeleton until Client packaging is wired (still as a separate build product, even if source temporarily lives in-tree).
+See [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_BOUNDARY.md).
 
 ## Secrets stay local
 
