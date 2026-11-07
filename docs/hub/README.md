@@ -123,7 +123,7 @@ After editing `config/config.yaml`, run `docker compose restart cliproxy` (Docke
 
 ## Source layout (this repo)
 
-**Hard rule:** Hub and Client are separate. This repository publishes **Hub only**. Do not merge Client app source, Electron packaging, or `~/.rahbaz` identity into the Hub tree.
+**Boundary:** Hub and Client are separate **products**. Same git tree is OK while developing; split repos later. Client installer must never install Hub — users set Hub up themselves, then only enter URL + API key in the Client. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
 
 This repository is **Hub-focused**. Publishable Hub pieces:
 

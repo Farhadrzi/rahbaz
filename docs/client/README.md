@@ -17,31 +17,32 @@ Stock Claude, Codex, Cursor, Antigravity, and other direct providers are not reg
 
 These identifiers are chosen so RahBaz can sit **side-by-side with T3 Code** without sharing install paths, shortcuts, protocol handlers, or updater metadata.
 
-> **Status:** Hub docs live in the Hub repo. Full Client source stays a local/gitignored checkout (`clients/rahbaz-client/`) until it moves to its **own** repository. Hub and Client must not be mixed in one publishable tree.
+> **Boundary:** Hub setup is **your** job. The Client installer does **not** install Hub/Docker. It only installs the app + connection deps (OpenCode). Same git tree is OK while developing; split into separate repos later. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
 
-## Prerequisites
+## Prerequisites (end user)
 
-1. **RahBaz Hub** running and reachable at `http://127.0.0.1:8317` — see [../hub/README.md](../hub/README.md)
-2. At least one Hub account logged in (`scripts/login-*.ps1` from the Hub repo)
-3. **OpenCode CLI** available at runtime (current desktop builds still invoke OpenCode under the hood)
-4. For building from source: Node (monorepo engines), Vite+ (`vp`), platform toolchains — see [../DESKTOP.md](../DESKTOP.md)
+1. **RahBaz Hub** already running (user responsibility) — [../hub/README.md](../hub/README.md)
+2. At least one Hub provider account logged in on the Hub
+3. Hub gateway API key (from Hub `config/config.yaml` → `access.api-keys[0]`)
+
+You do **not** need to pre-install OpenCode. The Client discovers PATH OpenCode or installs a pinned copy under `~/.rahbaz/tools/opencode`.
 
 ## Install (end users)
 
-When release artifacts are published to `Farhadrzi/rahbaz`:
+When release artifacts are published:
 
 | Platform | Typical artifact |
 |---|---|
-| Windows | `RahBaz-<version>-x64.exe` (NSIS) |
+| Windows | `RahBaz-<version>-x64.exe` (NSIS; choose install folder) |
 | Linux | `RahBaz-<version>-x86_64.AppImage` and/or `.deb` |
 | macOS | `RahBaz-<version>-arm64.dmg` (or x64) |
 
-1. Start the Hub first.
-2. Install / open RahBaz Client.
-3. Settings → Providers → **RahBaz**:
-   - Hub URL: `http://127.0.0.1:8317`
-   - Hub API key: gateway key from Hub `config/config.yaml` → `access.api-keys[0]` (Sensitive)
-4. Restart the Client once so the model picker reloads Hub `/v1/models`.
+1. Set up and start **Hub** yourself (not part of this installer).
+2. Install / open **RahBaz Client** (installer does not touch Hub).
+3. Settings → Providers → **RahBaz** — enter only:
+   - Hub URL: `http://127.0.0.1:8317` (default)
+   - Hub API key: gateway key (Sensitive)
+4. Client connects automatically: ensures OpenCode, loads Hub `/v1/models`, ready to chat.
 
 Never paste provider OAuth tokens into the Client.
 
@@ -80,13 +81,11 @@ The nested tree `clients/rahbaz-client/` is **ignored by the root `.gitignore`**
 
 Linux / macOS helpers: `scripts/build-desktop-linux.sh`, `scripts/build-desktop-mac.sh` (macOS must run on a Mac). Details: [../DESKTOP.md](../DESKTOP.md).
 
-### Publishing strategy (preferred)
+### Publishing strategy
 
-**Required:** publish Client from a **separate repository**. Do not un-ignore or vendor `clients/rahbaz-client/` into the Hub repo.
-
-Installers may be attached to Hub releases **or** published from the Client repo’s own Releases feed (document the updater URL). The Hub repo must remain Hub-only source.
-
-The `desktop-release` workflow in the Hub repo is a **skeleton**: it may check out the separate Client repo later; it must not assume Client source is mixed into Hub.
+- **Now:** Hub is published from this repo; Client source may stay local/gitignored in the same working tree.
+- **End state:** separate Client repository; Hub and Client installers stay separate forever.
+- Client installer must never embed Hub/Docker. Desktop CI builds Client artifacts only.
 
 ## Troubleshooting
 
