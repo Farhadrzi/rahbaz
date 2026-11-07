@@ -1,0 +1,12 @@
+# RahBaz -> Codex provider preset (for a dedicated CODEX_HOME, e.g. ~\.codex_rahbaz\config.toml).
+# Merge these blocks into that config.toml. No secrets belong in this file.
+
+model_provider = "rahbaz"
+
+[model_providers.rahbaz]
+name = "RahBaz"
+base_url = "http://127.0.0.1:8317/v1"
+# Name of the env var holding the gateway API key. Set it in the T3 Codex
+# instance Environment variables (Sensitive): RAHBAZ_API_KEY=<rahbaz-gateway-api-key>
+env_key = "RAHBAZ_API_KEY"
+wire_api = "responses"

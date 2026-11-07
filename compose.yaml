@@ -1,0 +1,50 @@
+# RahBaz local stack — Docker Desktop (Windows primary)
+name: rahbaz
+
+services:
+  cliproxy:
+    image: ${CLI_PROXY_IMAGE:-eceasy/cli-proxy-api:latest}
+    pull_policy: ${CLI_PROXY_PULL_POLICY:-missing}
+    container_name: rahbaz-cliproxy
+    environment:
+      DEPLOY: ${DEPLOY:-rahbaz}
+    ports:
+      - "127.0.0.1:8317:8317"   # API for T3 clients
+      - "127.0.0.1:8085:8085"   # management helpers
+      - "127.0.0.1:1455:1455"   # Codex OAuth callback
+      - "127.0.0.1:54545:54545" # Claude OAuth callback
+      - "127.0.0.1:51121:51121" # extra provider callbacks
+      - "127.0.0.1:11451:11451"
+    volumes:
+      - ${CLI_PROXY_CONFIG_PATH:-./config/config.yaml}:/CLIProxyAPI/config.yaml
+      - ${CLI_PROXY_AUTH_PATH:-./auths}:/root/.cli-proxy-api
+      - ${CLI_PROXY_LOG_PATH:-./logs/cliproxy}:/CLIProxyAPI/logs
+      - ${CLI_PROXY_PLUGIN_PATH:-./plugins}:/CLIProxyAPI/plugins
+    healthcheck:
+      # The upstream image (Debian) has no wget/curl, so probe with bash /dev/tcp.
+      # GET / is unauthenticated; /v1/models needs the gateway key and would 401.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8317 && printf 'GET / HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 200 '"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  switch-notifier:
+    build:
+      context: ./services/switch-notifier
+    container_name: rahbaz-switch-notifier
+    environment:
+      RAHBAZ_LOG_DIR: /logs
+      RAHBAZ_SWITCH_LOG: /switch-out/switches.jsonl
+      RAHBAZ_PORT: "8791"
+      RAHBAZ_PROXY_URL: http://cliproxy:8317
+    ports:
+      - "127.0.0.1:8791:8791"
+    volumes:
+      - ${CLI_PROXY_LOG_PATH:-./logs/cliproxy}:/logs:ro
+      - ./logs/notifier:/switch-out
+    depends_on:
+      cliproxy:
+        condition: service_started
+    restart: unless-stopped

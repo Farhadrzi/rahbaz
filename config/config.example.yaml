@@ -1,0 +1,112 @@
+# RahBaz gateway config  (copy to config/config.yaml; scripts/up.ps1 does this for you)
+#
+# Based on CLIProxyAPI's v8 grouped layout (see scripts/pull-upstream-config.ps1 to
+# fetch upstream's full reference). This file must stay free of real secrets: the
+# "change-me-*" values below are replaced with random keys by scripts/up.ps1 when it
+# creates config.yaml. config/config.yaml is gitignored.
+#
+# After editing config.yaml: docker compose restart cliproxy
+# (single-file bind mounts on Docker Desktop do not always propagate editor saves)
+
+config-version: 8
+
+# --- Server -------------------------------------------------------------------
+server:
+  # IMPORTANT: leave empty. This is the bind address INSIDE the container. Setting it
+  # to "127.0.0.1" would make Docker's published ports unreachable (traffic arrives on
+  # the container's eth0). Host-side exposure is restricted to loopback by compose.yaml:
+  #   ports: "127.0.0.1:8317:8317"
+  host: ""
+  port: 8317
+
+# --- Management API (OAuth URLs, credential list/disable) ---------------------
+# Served at http://127.0.0.1:8317/v8/management/... with
+#   Authorization: Bearer <secret-key>
+# A plaintext secret-key is bcrypt-hashed by the proxy when config is loaded/saved,
+# so keep your own copy. Empty secret-key = management API returns 404.
+management:
+  # Docker Desktop maps host 127.0.0.1 -> container bridge IP, so the Hub sees
+  # management calls as "remote". Keep host ports on 127.0.0.1 in compose.yaml,
+  # and set allow-remote true so the dashboard works from the browser.
+  allow-remote: true
+  secret-key: "change-me-management-key"
+  # false = serve Hub management UI at http://127.0.0.1:8317/management.html
+  disable-control-panel: false
+
+# --- Client access ------------------------------------------------------------
+# T3 clients authenticate to RahBaz with one of these keys. They never see provider
+# OAuth tokens. Use long random values; add one key per client if you want to
+# revoke them separately.
+access:
+  api-keys:
+    - "change-me-rahbaz-gateway-key"
+
+# --- Credentials --------------------------------------------------------------
+oauth:
+  # Container path; compose.yaml mounts ./auths here. Do not change unless you also
+  # change the volume.
+  auth-dir: "~/.cli-proxy-api"
+
+# --- Routing / failover -------------------------------------------------------
+routing:
+  # round-robin | weighted-round-robin | fill-first
+  # weighted-round-robin reads an integer "weight" per credential (default 1,
+  # max 1,000,000). weight 0 (or negative) EXCLUDES the credential = drain.
+  #   OAuth accounts: add  "weight": N  at the top level of the auths/*.json file.
+  #   API-key upstreams: add  weight: N  on the key entry.
+  strategy: "weighted-round-robin"
+
+  # Keep one conversation on one credential (prompt-cache locality).
+  session-affinity: true
+  session-affinity-ttl: "1h"
+  session-affinity-subagents: true
+  # "quota": only quota/auth-class errors rebind the session to another credential.
+  # "any" would rebind on every failure.
+  session-affinity-rebind-on: "quota"
+
+  retry:
+    request-retry: 3               # extra credential rounds after the first attempt
+    max-retry-credentials: 0       # 0 = no cap on credentials tried per round
+    max-retry-interval: 30         # max cooldown wait (seconds) between rounds
+
+# --- Requests / streaming -----------------------------------------------------
+requests:
+  proxy-url: ""                    # optional outbound proxy for upstream calls
+  streaming:
+    keepalive-seconds: 15          # SSE keep-alives; 0 disables
+    # Retries (next credential) when an upstream stream fails BEFORE the first byte is
+    # sent to the client. After the first token, a stream cannot be spliced onto
+    # another account - RahBaz surfaces a switch event instead.
+    bootstrap-retries: 2
+    # Upstream default is false. Sending keep-alives before the first token commits the
+    # response and can defeat pre-token failover; leave false unless a client times out.
+    send-keepalive-before-ft: false
+
+# --- Per-provider upstream behaviour ------------------------------------------
+upstream:
+  codex:
+    # Hold Codex handshake/heartbeat frames until the first generated event so an
+    # overload/quota rejection delivered inside an HTTP 200 stream can fail over to
+    # another credential. Costs a short delay before response headers. The hold is
+    # capped by upstream at 48 lines / 1 MiB; the timeout below is an extra ceiling.
+    stream-bootstrap-buffering: true
+    stream-bootstrap-timeout: "20s"
+
+# --- Logging ------------------------------------------------------------------
+# The switch-notifier tails ./logs/cliproxy, so file logging stays on.
+observability:
+  logs:
+    debug: false
+    logging-to-file: true
+    logs-max-total-size-mb: 512    # cap log disk use; 0 = unlimited
+    request-log: false             # per-request logs may contain prompts - keep off
+
+# --- Plugins ------------------------------------------------------------------
+# ./plugins is mounted at /CLIProxyAPI/plugins. Disabled until you need one.
+plugins:
+  enabled: false
+  dir: "plugins"
+
+# --- Optional: OpenAI-compatible API-key upstreams (OpenRouter etc.) ----------
+# Add provider groups here when needed; see upstream reference
+# (scripts/pull-upstream-config.ps1). Never commit real keys.

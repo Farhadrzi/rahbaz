@@ -1,0 +1,61 @@
+# Hub validation — no secrets, no live OAuth, no Docker daemon required for unit tests.
+# compose config lint uses the public example config + .env.example only.
+
+name: hub-validate
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hub-validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-config:
+    name: Compose config lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Docker Compose plugin
+        run: |
+          # GitHub-hosted runners include Docker; ensure compose is available.
+          docker compose version
+
+      - name: Prepare non-secret compose inputs
+        run: |
+          cp .env.example .env
+          # Bind-mount target must exist as a file (not a directory) for compose config.
+          cp config/config.example.yaml config/config.yaml
+          mkdir -p auths logs/cliproxy logs/notifier plugins
+
+      - name: Validate compose file
+        run: docker compose -f compose.yaml config --quiet
+
+      - name: Show resolved service names (no secrets)
+        run: docker compose -f compose.yaml config --services
+
+  switch-notifier-tests:
+    name: switch-notifier tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/switch-notifier
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run unit / selfcheck tests
+        run: npm test

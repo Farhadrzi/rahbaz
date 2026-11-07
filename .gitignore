@@ -1,0 +1,61 @@
+# Secrets & runtime state
+.env
+.env.local
+.env.*.local
+!.env.example
+.handoff/
+.private-notes/
+# auths/ and logs/ are ignored except for the placeholder files that document/keep them
+auths/*
+!auths/README.md
+auths/**/*.json
+auths/**/*.jsonl
+auths/**/*.yaml
+auths/**/*.yml
+auths/**/*.toml
+logs/*
+!logs/.gitkeep
+plugins/
+config/config.yaml
+config/config.local.yaml
+config/*.secret.yaml
+# Downloaded by scripts/pull-upstream-config.ps1 (reference only)
+config/upstream.config.example.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+**/secrets/
+**/*.secret
+
+# Local overrides
+compose.override.yaml
+compose.*.local.yaml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node / Python build artifacts for sidecars
+**/node_modules/
+**/__pycache__/
+**/.venv/
+**/dist/
+**/build/
+*.tsbuildinfo
+
+# Vendor build outputs
+vendor/CLIProxyAPI/cli-proxy-api
+vendor/CLIProxyAPI/cli-proxy-api.exe
+
+# Desktop installers & updater staging (local builds)
+release/
+
+# HARD SEPARATION: Hub repo never tracks Client app source.
+# Local nested T3 fork is private-dev only; Client publishes from its own repo.
+clients/rahbaz-client/
