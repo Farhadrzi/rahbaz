@@ -1,4 +1,5 @@
-# RahBaz local stack — Docker Desktop (Windows primary)
+# RahBaz Hub — Docker Desktop (Windows primary)
+# Client apps connect only to cliproxy on :8317. Hub setup is separate from Client install.
 name: rahbaz
 
 services:
@@ -9,7 +10,7 @@ services:
     environment:
       DEPLOY: ${DEPLOY:-rahbaz}
     ports:
-      - "127.0.0.1:8317:8317"   # API for T3 clients
+      - "127.0.0.1:8317:8317"   # API for RahBaz Client
       - "127.0.0.1:8085:8085"   # management helpers
       - "127.0.0.1:1455:1455"   # Codex OAuth callback
       - "127.0.0.1:54545:54545" # Claude OAuth callback
@@ -28,23 +29,4 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-    restart: unless-stopped
-
-  switch-notifier:
-    build:
-      context: ./services/switch-notifier
-    container_name: rahbaz-switch-notifier
-    environment:
-      RAHBAZ_LOG_DIR: /logs
-      RAHBAZ_SWITCH_LOG: /switch-out/switches.jsonl
-      RAHBAZ_PORT: "8791"
-      RAHBAZ_PROXY_URL: http://cliproxy:8317
-    ports:
-      - "127.0.0.1:8791:8791"
-    volumes:
-      - ${CLI_PROXY_LOG_PATH:-./logs/cliproxy}:/logs:ro
-      - ./logs/notifier:/switch-out
-    depends_on:
-      cliproxy:
-        condition: service_started
     restart: unless-stopped

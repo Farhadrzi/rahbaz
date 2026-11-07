@@ -1,18 +1,17 @@
 <#
 .SYNOPSIS
-  Start the RahBaz stack (cliproxy + switch-notifier) on Docker Desktop.
+  Start the RahBaz Hub (cliproxy) on Docker Desktop.
 
 .DESCRIPTION
   - Creates .env from .env.example and config\config.yaml from config\config.example.yaml
     when missing. A fresh config.yaml gets a random gateway API key and management key.
-  - Ensures auths\, logs\cliproxy, logs\notifier and plugins\ exist.
-  - Runs `docker compose up -d --build` and waits for the gateway to answer.
+  - Ensures auths\, logs\cliproxy and plugins\ exist.
+  - Runs `docker compose up -d` and waits for the gateway to answer.
 
 .PARAMETER NoBuild
-  Skip --build (faster restarts when the notifier has not changed).
+  Kept for compatibility (Hub image is pulled, not built locally).
 .PARAMETER ProxyOnly
-  Start only cliproxy. Also chosen automatically when services\switch-notifier\Dockerfile
-  does not exist yet.
+  Kept for compatibility (Hub is cliproxy-only).
 .PARAMETER Pull
   `docker compose pull cliproxy` first (picks up a newer upstream image).
 .PARAMETER WaitSeconds
@@ -67,7 +66,6 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 $dirs = @(
     (Get-AuthDir),
     (Resolve-RepoPath (Get-DotEnvValue 'CLI_PROXY_LOG_PATH' './logs/cliproxy')),
-    (Join-Path $root 'logs\notifier'),
     (Resolve-RepoPath (Get-DotEnvValue 'CLI_PROXY_PLUGIN_PATH' './plugins'))
 )
 foreach ($d in $dirs) {
@@ -77,26 +75,14 @@ foreach ($d in $dirs) {
     }
 }
 
-# --- compose up -------------------------------------------------------------
-$services = @()
-$notifierDockerfile = Join-Path $root 'services\switch-notifier\Dockerfile'
-if ($ProxyOnly) {
-    $services = @($script:ServiceName)
-} elseif (-not (Test-Path -LiteralPath $notifierDockerfile)) {
-    Write-Warn 'services\switch-notifier\Dockerfile not found - starting cliproxy only.'
-    $services = @($script:ServiceName)
-}
-
+# --- compose up (Hub = cliproxy only) ---------------------------------------
 if ($Pull) {
     Write-Info 'Pulling upstream image...'
     Invoke-Compose pull $script:ServiceName
     if ($LASTEXITCODE -ne 0) { throw "docker compose pull failed (exit $LASTEXITCODE)" }
 }
 
-$upArgs = @('up', '-d')
-if (-not $NoBuild) { $upArgs += '--build' }
-$upArgs += $services
-
+$upArgs = @('up', '-d', $script:ServiceName)
 Write-Info ('docker compose ' + ($upArgs -join ' '))
 Invoke-Compose @upArgs
 if ($LASTEXITCODE -ne 0) { throw "docker compose up failed (exit $LASTEXITCODE)" }
@@ -117,11 +103,9 @@ if ($up) { Write-Ok 'Gateway is answering.' } else { Write-Warn 'Gateway did not
 
 Write-Host ''
 Write-Info 'Endpoints (all bound to 127.0.0.1)'
-Write-Host "  API (T3 clients)    $($script:ApiBase)         Claude base URL"
+Write-Host "  API (RahBaz Client) $($script:ApiBase)         Claude-compatible base URL"
 Write-Host "                      $($script:ApiBase)/v1      OpenAI / Codex base URL"
 Write-Host "  Management API      $($script:ApiBase)/v8/management   (needs management.secret-key)"
-Write-Host "  Switch events (SSE) $($script:NotifierBase)/events     (switch-notifier)"
-Write-Host "  Switch status       $($script:NotifierBase)/status"
 Write-Host '  OAuth callbacks     1455 (Codex)  54545 (Claude)  51121 (Antigravity)'
 Write-Host ''
 Write-Info 'Next'
@@ -129,3 +113,5 @@ Write-Host '  .\scripts\login-claude.ps1       # repeat per account'
 Write-Host '  .\scripts\login-codex.ps1'
 Write-Host '  .\scripts\login-antigravity.ps1'
 Write-Host '  .\scripts\status.ps1'
+Write-Host '  Install RahBaz Client: https://github.com/Farhadrzi/rahbaz-client/releases'
+Write-Host '  Then set Hub URL + gateway API key in Client settings.'

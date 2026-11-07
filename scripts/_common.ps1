@@ -8,7 +8,6 @@ $ErrorActionPreference = 'Stop'
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $script:ComposeFile = Join-Path $script:RepoRoot 'compose.yaml'
 $script:ApiBase = 'http://127.0.0.1:8317'
-$script:NotifierBase = 'http://127.0.0.1:8791'
 $script:ServiceName = 'cliproxy'
 $script:ContainerBinary = '/CLIProxyAPI/CLIProxyAPI'
 

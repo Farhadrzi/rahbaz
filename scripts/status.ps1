@@ -92,15 +92,4 @@ if ($ManagementKey -and ($root.Ok -or $root.Status -gt 0)) {
     }
 }
 
-# 4. Notifier (optional sidecar)
-Write-Host ''
-Write-Info '== switch-notifier =='
-$n = Invoke-Probe "$($script:NotifierBase)/status"
-if ($n.Ok) {
-    Write-Ok "GET /status     HTTP $($n.Status)"
-    if ($n.Body) { Write-Host "  $($n.Body.Trim())" }
-} else {
-    Write-Warn "Not reachable on $($script:NotifierBase) (may not be built/started yet): $($n.Error)"
-}
-
 if ($failed) { exit 1 }

@@ -12,8 +12,6 @@ Primary runtime: **Windows + Docker Desktop**.
 | `http://127.0.0.1:8317/v1` | OpenAI / Codex-compatible base URL |
 | `http://127.0.0.1:8317/v1/models` | Unified model catalog |
 | `http://127.0.0.1:8317/management.html` | Hub dashboard (management key) |
-| `http://127.0.0.1:8791/events` | Optional switch-notifier SSE stream |
-| `http://127.0.0.1:8791/status` | Optional switch-notifier status |
 
 All Hub ports are published on **loopback only** (`127.0.0.1`).
 
@@ -38,7 +36,7 @@ First run will:
 - Create `.env` from `.env.example` (non-secret image/path defaults)
 - Create `config/config.yaml` from `config/config.example.yaml` with **random** gateway and management keys
 - Create `auths/`, `logs/`, and `plugins/` directories
-- Build/start `cliproxy` + `switch-notifier`
+- Start `cliproxy` (Hub gateway)
 
 Then add accounts (one login = one account; repeat per account):
 
@@ -107,30 +105,33 @@ Do not paste provider OAuth tokens into any client. Those stay in Hub `auths/`.
 | `54545` | Claude OAuth callback |
 | `51121` | Antigravity / extra OAuth callbacks |
 | `11451` | Extra upstream helper |
-| `8791` | switch-notifier |
 
 ## Day-2 operations
 
-Weight drain, backups, OAuth troubleshooting, and switch-event reading are documented in [../OPERATOR_RUNBOOK.md](../OPERATOR_RUNBOOK.md).
+Weight drain, backups, and OAuth troubleshooting are documented in [../OPERATOR_RUNBOOK.md](../OPERATOR_RUNBOOK.md).
 
 Useful script flags:
 
 - `.\scripts\up.ps1 -Pull` — pull a newer upstream proxy image
-- `.\scripts\up.ps1 -NoBuild` — skip rebuilding the notifier image
-- `.\scripts\up.ps1 -ProxyOnly` — start only `cliproxy`
 
 After editing `config/config.yaml`, run `docker compose restart cliproxy` (Docker Desktop single-file bind mounts do not always pick up editor saves).
 
+## After Hub is up
+
+1. Install **RahBaz Client** from https://github.com/Farhadrzi/rahbaz-client/releases
+2. Settings → RahBaz → Hub URL `http://127.0.0.1:8317` + gateway API key (`access.api-keys[0]`)
+
+Client updates come from the Client repository Releases feed (not this Hub repo).
+
 ## Source layout (this repo)
 
-**Boundary:** Hub and Client are separate **products**. Same git tree is OK while developing; split repos later. Client installer must never install Hub — users set Hub up themselves, then only enter URL + API key in the Client. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
+**Boundary:** Hub and Client are separate products and separate GitHub repos. See [../PRODUCT_BOUNDARY.md](../PRODUCT_BOUNDARY.md).
 
-This repository is **Hub-focused**. Publishable Hub pieces:
+Publishable Hub pieces:
 
 - `compose.yaml`
 - `config/config.example.yaml`
 - `scripts/` (start / login / status helpers)
-- `services/switch-notifier/`
 - `docs/`
 
-The nested checkout `clients/rahbaz-client/` is **gitignored** today (large T3 fork). Client installers/source publishing strategy is separate — see [../client/README.md](../client/README.md) and the root README “Publishing layout” note.
+Client: https://github.com/Farhadrzi/rahbaz-client
