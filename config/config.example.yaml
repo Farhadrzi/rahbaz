@@ -93,7 +93,7 @@ upstream:
     stream-bootstrap-timeout: "20s"
 
 # --- Logging ------------------------------------------------------------------
-# The switch-notifier tails ./logs/cliproxy, so file logging stays on.
+# File logging stays on for operator troubleshooting (logs/cliproxy).
 observability:
   logs:
     debug: false

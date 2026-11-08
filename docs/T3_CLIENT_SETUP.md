@@ -64,12 +64,6 @@ Run:
 
 This checks that documented preset files still target loopback RahBaz and that the gateway is reachable.
 
-## Switch notifications
+## Failover
 
-Subscribe to:
-
-```text
-GET http://127.0.0.1:8791/events
-```
-
-Events fire when RahBaz rotates credentials due to quota/auth/errors. Desktop toast wiring comes in a later phase; for now use the SSE stream or `logs/switches.jsonl`.
+Credential rotation is handled inside the Hub gateway. Watch `docker compose logs -f cliproxy` or `logs\cliproxy\` if you need operator visibility; the Client only needs Hub URL + gateway API key.

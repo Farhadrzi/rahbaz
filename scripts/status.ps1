@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Show container state and probe the gateway (and notifier, and credentials if a management key is given).
+  Show container state and probe the gateway (and credentials if a management key is given).
 
 .PARAMETER ManagementKey
   Plaintext management.secret-key. Falls back to $env:RAHBAZ_MANAGEMENT_KEY.

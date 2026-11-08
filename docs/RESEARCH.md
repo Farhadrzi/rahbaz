@@ -70,7 +70,7 @@ Implications:
 | Desired | Gap | RahBaz approach |
 |---|---|---|
 | One branded gateway for T3-only use | Upstream is generic | Overlay config, presets, docs, enforcement helpers |
-| Notify user when auto-switch happens | Upstream logs/management, no T3 UX hook | `switch-notifier` sidecar → SSE + optional desktop toast |
+| Notify user when auto-switch happens | Upstream logs/management, no T3 UX hook | Deferred; Hub logs + Client retry are enough for v0.1 |
 | Quota-aware automatic weight changes | Weights are manual / static | Control heuristics: cooldown, weight=0 on 429 windows, restore later |
 | Mid-turn switch after tokens started | HTTP streaming already committed | Bootstrap buffering + session rebind; emit switch event; optionally restart turn with notice |
 | Desktop tray for Win/Linux/Mac | EasyCLIProxyAPI exists upstream | Thin RahBaz desktop later; Windows first on this machine |
@@ -80,10 +80,10 @@ Implications:
 
 **Do not fork CLIProxyAPI on day one.** Vendor via official Docker image and treat RahBaz as:
 
-1. Opinionated config + compose stack
-2. Control/notify sidecar
-3. T3-only client presets
-4. Optional patch fork later if bootstrap buffering / switch events need deeper hooks
+1. Opinionated config + compose stack (cliproxy-only)
+2. Separate RahBaz Client repo that only connects to the Hub
+3. T3-only client presets as a fallback
+4. Optional patch fork later if bootstrap buffering needs deeper hooks
 
 If a source patch becomes necessary, clone into `vendor/CLIProxyAPI` and build with compose `build:`.
 

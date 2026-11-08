@@ -12,8 +12,7 @@
 param(
     [switch]$RequireGateway,
     [string]$GatewayHost = '127.0.0.1',
-    [int]$GatewayPort = 8317,
-    [int]$NotifierPort = 8791
+    [int]$GatewayPort = 8317
 )
 
 $ErrorActionPreference = 'Stop'
@@ -109,14 +108,6 @@ if ($gatewayUp) {
     Fail "gateway not reachable at $allowedHostPort"
 } else {
     Warn "gateway not reachable at $allowedHostPort (stack down? run scripts/up.ps1; use -RequireGateway to fail)"
-}
-
-# ---- 3. Notifier (optional) -----------------------------------------------
-try {
-    $h = Invoke-WebRequest -Uri "http://${GatewayHost}:${NotifierPort}/health" -UseBasicParsing -TimeoutSec 2
-    Pass "notifier /health on ${NotifierPort} responded ($($h.StatusCode))"
-} catch {
-    Warn "notifier /health on ${NotifierPort} not up (optional)"
 }
 
 # ---- Result ---------------------------------------------------------------

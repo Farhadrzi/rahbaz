@@ -16,7 +16,6 @@ A private, local OpenRouter: one Hub holds every subscription and model; one Cli
 
 - Shipping mobile/remote parity on day one
 - Replacing OpenCode with a from-scratch HTTP agent runtime
-- Making switch-notifier the primary UX
 - Multi-tenant cloud SaaS
 
 ## Functional requirements

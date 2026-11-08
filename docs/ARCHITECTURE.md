@@ -35,11 +35,6 @@ flowchart LR
 - Internally runs OpenCode locked to the Hub base URL + gateway API key
 - Other stock providers (Claude, Codex, Cursor, Antigravity, …) are removed/hidden so the Client cannot bypass the Hub
 
-### Optional: switch-notifier
-
-- Sidecar on `:8791` for failover visibility
-- Not required for the OpenRouter-style product path
-
 ## Trust boundary
 
 - Provider OAuth tokens stay in Hub volume `auths/`

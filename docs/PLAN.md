@@ -13,8 +13,8 @@
 |---|---|
 | Hub Docker stack | Done — healthy on this machine |
 | Multi-account OAuth + `/v1/models` | Done — user verified 26 models |
-| Switch notifier | Done (optional) |
-| RahBaz Client (single Hub provider) | Done — user verified working in browser |
+| Switch notifier | Removed — Hub is cliproxy-only |
+| RahBaz Client (single Hub provider) | Done — separate repo Farhadrzi/rahbaz-client |
 | OpenCode Hub config (`ConfigInvalidError` fix) | Done — legacy `provider` + allowlist |
 | Windows standalone app | Done — `release/desktop/win/RahBaz-0.1.7-x64.exe` |
 | Linux standalone | Done — AppImage + deb via Ubuntu-24.04 WSL |

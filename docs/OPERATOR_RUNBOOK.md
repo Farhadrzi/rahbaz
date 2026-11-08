@@ -9,20 +9,19 @@ All commands are Windows PowerShell, run from the repo root. Everything is bound
 | Gateway API | `http://127.0.0.1:8317` (Claude base URL) / `http://127.0.0.1:8317/v1` (OpenAI/Codex) |
 | Hub dashboard (Web UI) | `http://127.0.0.1:8317/management.html` — log in with the **management** key (not the gateway API key). Needs `management.allow-remote: true` under Docker Desktop. |
 | Management API | `http://127.0.0.1:8317/v8/management` (header `Authorization: Bearer <management key>`) |
-| Switch events | `http://127.0.0.1:8791/events` (SSE), `http://127.0.0.1:8791/status` |
 | Config | `config\config.yaml` (gitignored; template: `config\config.example.yaml`) |
 | Credentials | `auths\*.json` (gitignored, secret) |
-| Logs | `logs\cliproxy\`, `logs\notifier\switches.jsonl` |
+| Logs | `logs\cliproxy\` |
 
 ## 1. Start / stop
 
 ```powershell
-.\scripts\up.ps1            # first run: creates .env + config.yaml, dirs, builds, starts, prints endpoints
-.\scripts\status.ps1        # compose ps + gateway probe (+ notifier)
+.\scripts\up.ps1            # first run: creates .env + config.yaml, dirs, starts cliproxy, prints endpoints
+.\scripts\status.ps1        # compose ps + gateway probe
 .\scripts\down.ps1          # stop; auths\ and logs\ are kept
 ```
 
-Useful switches: `up.ps1 -Pull` (newer upstream image), `-NoBuild`, `-ProxyOnly` (skip the notifier; automatic if `services\switch-notifier\Dockerfile` is missing).
+Useful switches: `up.ps1 -Pull` (newer upstream image). `-NoBuild` / `-ProxyOnly` are kept for compatibility (Hub is cliproxy-only).
 
 On first run `up.ps1` writes `config\config.yaml` with a random **gateway key** (`access.api-keys[0]`, what T3 uses) and a random **management key**. The management key is printed **once**, because the proxy bcrypt-hashes it in the file. Save it, then:
 
@@ -108,29 +107,16 @@ Upstream documents no dedicated weight endpoint for OAuth files, so use Option A
 
 Typical use: an account hit a weekly limit, so set weight `0` until the window resets, then restore.
 
-## 4. Read switch events
+## 4. Failover visibility
 
-`switch-notifier` emits `switch.quota`, `switch.error`, `switch.auth` (and later `switch.manual`) with `{from, to, provider, reason, requestId}`.
-
-```powershell
-# live stream (use curl.exe; plain `curl` is an Invoke-WebRequest alias in Windows PowerShell)
-curl.exe -N http://127.0.0.1:8791/events
-
-# current state
-Invoke-RestMethod http://127.0.0.1:8791/status
-
-# audit trail (JSON Lines)
-Get-Content logs\notifier\switches.jsonl -Tail 20 -Wait | ForEach-Object { $_ | ConvertFrom-Json }
-```
+Hub handles credential failover itself (weighted routing + bootstrap retries). There is no separate switch-notifier sidecar.
 
 How a switch looks to the client:
 
-- **Before the first token:** RahBaz retries on the next credential (`bootstrap-retries`, Codex `stream-bootstrap-buffering`). The turn succeeds; you only see the event.
-- **After tokens started:** the stream cannot be moved to another account. The turn ends with an error; retry and it runs on the rebound credential. The event is still emitted.
+- **Before the first token:** Hub retries on the next credential (`bootstrap-retries`, Codex `stream-bootstrap-buffering`). The turn succeeds.
+- **After tokens started:** the stream cannot be moved to another account. The turn ends with an error; retry and it runs on the rebound credential.
 
 Proxy-side logs: `docker compose logs -f cliproxy` or `logs\cliproxy\`.
-
-If `/events` does not respond, the notifier is not running (`status.ps1` shows it). The gateway keeps working without it.
 
 ## 5. Back up `auths\`
 
